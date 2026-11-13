@@ -19,4 +19,5 @@ go build .
 | `llm_quota_fetch_success` | Latest account fetch succeeded: 1 or 0 |
 | `llm_quota_remaining_ratio` | Remaining quota, 0–1 |
 | `llm_quota_reset_timestamp_seconds` | Reset time in Unix seconds |
+| `llm_quota_resets_available` | Available reset credits for Codex/Claude Code |
 | `llm_quota_summary_value` | Credit/balance value with a `unit` label |

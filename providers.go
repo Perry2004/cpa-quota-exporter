@@ -82,10 +82,22 @@ func (e *exporter) fetchQuota(ctx context.Context, c credential) (quotaData, err
 			h["Chatgpt-Account-Id"] = id
 		}
 		data, err = e.apiCall(ctx, c, "GET", "https://chatgpt.com/backend-api/wham/usage", h, nil)
+		if err == nil {
+			h["OpenAI-Beta"], h["Originator"] = "codex-1", "Codex Desktop"
+			// A reset-count failure must not discard the account's quota windows.
+			if resets, resetErr := e.apiCall(ctx, c, "GET", "https://chatgpt.com/backend-api/wham/rate-limit-reset-credits", h, nil); resetErr == nil {
+				data["rate_limit_reset_credits"] = resets
+			}
+		}
 	case "claude":
 		h["anthropic-beta"] = "oauth-2025-04-20"
 		h["User-Agent"] = "claude-cli/2.1.280 (external, cli)"
 		data, err = e.apiCall(ctx, c, "GET", "https://api.anthropic.com/api/oauth/usage", h, nil)
+		if err == nil {
+			if resets, resetErr := e.apiCall(ctx, c, "GET", "https://api.anthropic.com/api/oauth/usage?cedar_ember=1&skip_spend=1", h, nil); resetErr == nil {
+				data["cedar_ember"] = resets["cedar_ember"]
+			}
+		}
 	case "antigravity":
 		project := c.ProjectID
 		if project == "" {

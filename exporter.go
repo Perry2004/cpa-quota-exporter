@@ -41,8 +41,9 @@ type summary struct {
 }
 
 type quotaData struct {
-	Quotas []quota
-	Values []summary
+	Quotas          []quota
+	Values          []summary
+	ResetsAvailable *int
 }
 
 type accountResult struct {

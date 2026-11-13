@@ -42,6 +42,40 @@ func number(v any) *float64 {
 	}
 	return &n
 }
+
+// Keep missing counts distinct from zero, without truncating fractional values.
+func count(v any) *int {
+	n := number(v)
+	if n == nil {
+		return nil
+	}
+	value := int(*n)
+	if value < 0 || float64(value) != *n {
+		return nil
+	}
+	return &value
+}
+
+func claudeResetCount(v any) *int {
+	status := obj(v)
+	if _, ok := status["eligible"].(bool); !ok {
+		return nil
+	}
+	grants, ok := status["grants"].([]any)
+	if status["grants"] != nil && !ok {
+		return nil
+	}
+	total := 0
+	for _, raw := range grants {
+		left := count(obj(raw)["resets_left"])
+		if left == nil {
+			return nil
+		}
+		total += *left
+	}
+	return &total
+}
+
 func fraction(v any, divisor float64, used bool) *float64 {
 	n := number(v)
 	if n == nil || *n < 0 || divisor <= 0 {
@@ -126,7 +160,10 @@ func parseQuota(provider string, o object) (quotaData, error) {
 			limits(name, obj(field(a, "rate_limit", "rateLimit")))
 		}
 		d.value("credits_balance", "credits", obj(o["credits"])["balance"])
+		resets := obj(field(o, "rate_limit_reset_credits", "rateLimitResetCredits"))
+		d.ResetsAvailable = count(field(resets, "available_count", "availableCount"))
 	case "claude":
+		d.ResetsAvailable = claudeResetCount(o["cedar_ember"])
 		for _, key := range []string{"five_hour", "seven_day", "seven_day_oauth_apps", "seven_day_opus", "seven_day_sonnet", "seven_day_cowork", "iguana_necktie"} {
 			w := obj(o[key])
 			d.add(key, key, fraction(w["utilization"], 100, true), resetTime(w))
@@ -250,7 +287,7 @@ func parseQuota(provider string, o object) (quotaData, error) {
 			}
 		}
 	}
-	if len(d.Quotas) == 0 && len(d.Values) == 0 {
+	if len(d.Quotas) == 0 && len(d.Values) == 0 && d.ResetsAvailable == nil {
 		return quotaData{}, errQuota
 	}
 	return d, nil
