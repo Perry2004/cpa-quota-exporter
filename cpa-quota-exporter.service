@@ -1,0 +1,13 @@
+[Unit]
+Description=CLIProxyAPI quota exporter
+After=network.target cliproxyapi.service
+
+[Service]
+DynamicUser=yes
+LoadCredential=management-key:/var/lib/cliproxyapi/management-key
+ExecStart=/usr/local/bin/cpa-quota-exporter -management-key-file=%d/management-key
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
